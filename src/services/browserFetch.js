@@ -29,16 +29,27 @@ export async function fetchWithBrowser(options = {}) {
     const page = await browser.newPage();
     await page.setUserAgent(DEFAULT_USER_AGENT);
     await page.setViewport({ width: 1366, height: 768, deviceScaleFactor: 1 });
-    await page.setExtraHTTPHeaders(normalizeHeaders(headers));
+    const requestHeaders = withDefaultHeaders(headers);
+    await page.setExtraHTTPHeaders(requestHeaders);
 
-    if (method.toUpperCase() === 'GET') {
+    if (method.toUpperCase() === 'GET' && (selector || waitForSelector)) {
       return await loadPage(page, { url, selector, waitForSelector, timeoutMs });
     }
 
-    return await browserFetch(page, { url, method, headers, body, timeoutMs });
+    await openRequestOrigin(page, url, timeoutMs);
+    return await browserFetch(page, { url, method, headers: requestHeaders, body, timeoutMs });
   } finally {
     await browser.close();
   }
+}
+
+async function openRequestOrigin(page, url, timeoutMs) {
+  const origin = new URL(url).origin;
+
+  await page.goto(origin, {
+    waitUntil: 'domcontentloaded',
+    timeout: timeoutMs
+  });
 }
 
 async function loadPage(page, { url, selector, waitForSelector, timeoutMs }) {
@@ -66,7 +77,36 @@ async function loadPage(page, { url, selector, waitForSelector, timeoutMs }) {
 }
 
 async function browserFetch(page, { url, method, headers, body, timeoutMs }) {
-  const result = await page.evaluate(
+  const requestMethod = method.toUpperCase();
+  let result = await fetchFromPage(page, {
+    url,
+    method: requestMethod,
+    headers,
+    body,
+    timeoutMs
+  });
+
+  if (shouldRetryAsJson({ result, method: requestMethod, headers })) {
+    const jsonUrl = withJsonFormat(url);
+    result = await fetchFromPage(page, {
+      url: jsonUrl,
+      method: requestMethod,
+      headers,
+      body,
+      timeoutMs
+    });
+  }
+
+  return {
+    url: result.url,
+    status: result.status,
+    contentType: result.contentType,
+    data: parseMaybeJson(result.text)
+  };
+}
+
+async function fetchFromPage(page, { url, method, headers, body, timeoutMs }) {
+  return await page.evaluate(
     async ({ requestUrl, requestMethod, requestHeaders, requestBody, requestTimeoutMs }) => {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
@@ -81,6 +121,7 @@ async function browserFetch(page, { url, method, headers, body, timeoutMs }) {
         const text = await response.text();
 
         return {
+          url: response.url,
           status: response.status,
           contentType: response.headers.get('content-type') || '',
           text
@@ -91,25 +132,48 @@ async function browserFetch(page, { url, method, headers, body, timeoutMs }) {
     },
     {
       requestUrl: url,
-      requestMethod: method.toUpperCase(),
+      requestMethod: method,
       requestHeaders: normalizeHeaders(headers),
       requestBody: formatBody(body, headers),
       requestTimeoutMs: timeoutMs
     }
   );
-
-  return {
-    url,
-    status: result.status,
-    contentType: result.contentType,
-    data: parseMaybeJson(result.text)
-  };
 }
 
 function normalizeHeaders(headers) {
   return Object.fromEntries(
     Object.entries(headers || {}).map(([key, value]) => [key, String(value)])
   );
+}
+
+function withDefaultHeaders(headers) {
+  return {
+    accept: 'application/json',
+    ...normalizeHeaders(headers)
+  };
+}
+
+function shouldRetryAsJson({ result, method, headers }) {
+  const accept = Object.entries(headers || {}).find(
+    ([key]) => key.toLowerCase() === 'accept'
+  )?.[1];
+
+  return (
+    method === 'GET' &&
+    String(accept).includes('application/json') &&
+    !result.contentType.includes('application/json') &&
+    result.text.includes('Django REST framework')
+  );
+}
+
+function withJsonFormat(url) {
+  const nextUrl = new URL(url);
+
+  if (!nextUrl.searchParams.has('format')) {
+    nextUrl.searchParams.set('format', 'json');
+  }
+
+  return nextUrl.toString();
 }
 
 function formatBody(body, headers) {
