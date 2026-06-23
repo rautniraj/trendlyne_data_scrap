@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { loadEnvFile } from 'node:process';
 import { fetchWithBrowser } from './services/browserFetch.js';
-import { summarizeNumbers } from './services/math.js';
+import { analyzeEtfs } from './services/math.js';
 
 if (existsSync('.env')) {
   loadEnvFile('.env');
@@ -18,15 +18,10 @@ const request = {
 
 try {
   const result = await fetchWithBrowser(request);
-  const summary = summarizeNumbers(result.data);
+  const etfArray = result.data.body.tableData;
+  const output = analyzeEtfs(etfArray, 10);
 
-  console.log('Fetched:', result.url);
-  console.log('Status:', result.status);
-  console.log('Content-Type:', result.contentType || 'unknown');
-  console.log('\nSummary:');
-  console.table(summary);
-  console.log('\nRaw data:');
-  console.log(JSON.stringify(result.data, null, 2));
+  console.log(JSON.stringify(output, null, 2));
 } catch (error) {
   console.error('Failed:', error.message);
   process.exitCode = 1;
