@@ -53,13 +53,18 @@ export function analyzeEtfs(tableData, limit = 5) {
       ? expenseRatios.reduce((total, value) => total + value, 0) / expenseRatios.length
       : null;
 
+  const roundedAvgExpenseRatio = roundToTwo(avgExpenseRatio);
+
   return {
     data: etfs
       .filter(etf => Number.isFinite(etf.tradeValueRaw))
       .sort((a, b) => b.tradeValueRaw - a.tradeValueRaw)
       .slice(0, limit)
-      .map(({ tradeValueRaw, ...etf }) => etf),
-    avgExpenseRatio: roundToTwo(avgExpenseRatio)
+      .map(({ tradeValueRaw, ...etf }) => ({
+        ...etf,
+        remarks: getRemarks(etf.expenseRatio, roundedAvgExpenseRatio)
+      })),
+    avgExpenseRatio: roundedAvgExpenseRatio
   };
 }
 
@@ -137,4 +142,14 @@ function roundToTwo(value) {
   }
 
   return Number(value.toFixed(2));
+}
+
+function getRemarks(expenseRatio, avgExpenseRatio) {
+  if (!Number.isFinite(expenseRatio) || !Number.isFinite(avgExpenseRatio)) {
+    return null;
+  }
+
+  return expenseRatio <= avgExpenseRatio
+    ? 'GOOD (expense ratio below category avg)'
+    : 'HIGH (expense ratio above category avg)';
 }

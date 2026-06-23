@@ -19,7 +19,7 @@ const request = {
 try {
   const result = await fetchWithBrowser(request);
   const etfArray = result.data.body.tableData;
-  const output = analyzeEtfs(etfArray, 10);
+  const output = analyzeEtfs(etfArray, 5);
 
   console.log(JSON.stringify(output, null, 2));
 } catch (error) {
