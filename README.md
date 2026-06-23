@@ -74,7 +74,3 @@ API_URL=https://trendlyne.com/equity/api/get-etfs-tabledata-v2/byslug/silver/?pe
   "avgExpenseRatio": 0.48
 }
 ```
-
-## GitHub Description
-
-Node.js Puppeteer script to fetch Trendlyne ETF category data and rank top ETFs by trade value with expense ratio insights.
