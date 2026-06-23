@@ -63,14 +63,30 @@ API_URL=https://trendlyne.com/equity/api/get-etfs-tabledata-v2/byslug/silver/?pe
 {
   "data": [
     {
-      "name": "Nippon India ETF Gold BeES",
-      "price": 118.9,
-      "threeMonthAvgVolume": "34.29M",
-      "tradeValue": "4077M",
-      "expenseRatio": 0.69,
+      "name": "Nippon India Silver ETF",
+      "price": 215.06,
+      "threeMonthAvgVolume": "35.27M",
+      "tradeValue": "7586.08M",
+      "expenseRatio": 0.49,
       "remarks": "HIGH (expense ratio above category avg)"
+    },
+    {
+      "name": "Tata Silver Exchange Traded Fund",
+      "price": 21.82,
+      "threeMonthAvgVolume": "80.27M",
+      "tradeValue": "1751.55M",
+      "expenseRatio": 0.33,
+      "remarks": "GOOD (expense ratio below category avg)"
+    },
+    {
+      "name": "ICICI Prudential Silver ETF",
+      "price": 224.83,
+      "threeMonthAvgVolume": "4.99M",
+      "tradeValue": "1121.42M",
+      "expenseRatio": 0.34,
+      "remarks": "GOOD (expense ratio below category avg)"
     }
   ],
-  "avgExpenseRatio": 0.48
+  "avgExpenseRatio": 0.42
 }
 ```
